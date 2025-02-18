@@ -2,5 +2,8 @@ spring:
   doc:
     snippets:
       output-dir: build/generated-snippets
+logging:
+  level:
+    root: DEBUG
 app:
   base-url: http://localhost:8080

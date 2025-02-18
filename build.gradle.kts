@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 plugins {
 	kotlin("jvm") version "1.9.25"
 	kotlin("plugin.spring") version "1.9.25"
@@ -37,7 +39,9 @@ dependencies {
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	testImplementation("io.mockk:mockk:1.13.16")
 	testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient:3.0.3")
+	testImplementation("com.navercorp.fixturemonkey:fixture-monkey-starter-kotlin:1.1.9")
 }
 
 kotlin {
@@ -53,6 +57,11 @@ tasks.withType<Test> {
 tasks.test {
 	useJUnitPlatform()
 	outputs.dir(file("build/generated-snippets"))
+	testLogging {
+		events("STARTED", "PASSED", "FAILED", "SKIPPED", "STANDARD_OUT", "STANDARD_ERROR")
+		exceptionFormat = TestExceptionFormat.FULL
+		showStandardStreams = true
+	}
 }
 
 tasks.asciidoctor {

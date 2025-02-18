@@ -1,6 +1,7 @@
 package me.chacham.cmessage.message.api
 
 import me.chacham.cmessage.message.domain.Message
+import me.chacham.cmessage.message.repository.MessageRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -8,13 +9,17 @@ import java.net.URI
 
 @RestController
 @RequestMapping("/api/v1/messages")
-class MessageController(@Value("\${app.base-url}") private val baseUrl: String) {
+class MessageController(
+    @Value("\${app.base-url}") private val baseUrl: String,
+    private val messageRepository: MessageRepository,
+) {
     @PostMapping
     suspend fun sendMessage(
         @RequestBody request: SendMessageRequest,
-    ): ResponseEntity<Unit> {
-        println("Message: $request")
-        return ResponseEntity.created(URI.create("${baseUrl}/testId")).build()
+    ): ResponseEntity<Map<String, String>> {
+        val messageId = messageRepository.saveMessage(request.senderId, request.receiverId, request.content)
+        return ResponseEntity.created(URI.create("${baseUrl}/api/v1/messages/${messageId}"))
+            .body(mapOf("id" to messageId))
     }
 
     @GetMapping
@@ -22,18 +27,15 @@ class MessageController(@Value("\${app.base-url}") private val baseUrl: String) 
         @RequestParam("senderId") senderId: String?,
         @RequestParam("receiverId") receiverId: String?,
     ): ResponseEntity<List<Message>> {
-        return ResponseEntity.ok(
-            listOf(
-                Message("testId", "senderId", "receiverId", "content"),
-                Message("testId2", "senderId", "receiverId", "content"),
-            )
-        )
+        val messages = messageRepository.findMessages(senderId, receiverId)
+        return ResponseEntity.ok(messages)
     }
 
     @GetMapping("/{messageId}")
     suspend fun getMessage(
         @PathVariable messageId: String,
     ): ResponseEntity<Message> {
-        return ResponseEntity.ok(Message(messageId, "senderId", "receiverId", "content"))
+        val message = messageRepository.findMessage(messageId) ?: return ResponseEntity.notFound().build()
+        return ResponseEntity.ok(message)
     }
 }
