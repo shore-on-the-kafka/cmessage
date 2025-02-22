@@ -5,6 +5,7 @@ import com.navercorp.fixturemonkey.kotlin.KotlinPlugin
 import com.navercorp.fixturemonkey.kotlin.giveMeKotlinBuilder
 import me.chacham.cmessage.message.api.MessageController
 import me.chacham.cmessage.message.api.SendMessageRequest
+import me.chacham.cmessage.message.api.SendMessageResponse
 import me.chacham.cmessage.message.domain.Message
 import me.chacham.cmessage.message.repository.MessageRepository
 import org.springframework.beans.factory.annotation.Autowired
@@ -62,7 +63,7 @@ class MessageDocumentTest {
                         fieldWithPath("content").description("content"),
                     ),
                     responseFields(
-                        fieldWithPath("id").description("messageId"),
+                        fieldWithPath("messageId").description("created messageId"),
                     ),
                 )
             )
@@ -128,12 +129,12 @@ class MessageDocumentTest {
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(request))
             .exchange()
-            .expectBody<Map<String, String>>()
+            .expectBody<SendMessageResponse>()
             .returnResult()
-            .responseBody!!["id"]!!
+            .responseBody!!.messageId
 
         webTestClient.get()
-            .uri("/api/v1/messages/{messageId}", responseMessageId)
+            .uri("/api/v1/messages/{messageId}", responseMessageId.id)
             .exchange()
             .expectStatus().isOk
             .expectBody(Message::class.java)

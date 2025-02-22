@@ -1,6 +1,7 @@
 package me.chacham.cmessage.message.api
 
 import me.chacham.cmessage.message.domain.Message
+import me.chacham.cmessage.message.domain.MessageId
 import me.chacham.cmessage.message.repository.MessageRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
@@ -16,10 +17,10 @@ class MessageController(
     @PostMapping
     suspend fun sendMessage(
         @RequestBody request: SendMessageRequest,
-    ): ResponseEntity<Map<String, String>> {
+    ): ResponseEntity<SendMessageResponse> {
         val messageId = messageRepository.saveMessage(request.senderId, request.receiverId, request.content)
         return ResponseEntity.created(URI.create("${baseUrl}/api/v1/messages/${messageId}"))
-            .body(mapOf("id" to messageId))
+            .body(SendMessageResponse(messageId))
     }
 
     @GetMapping
@@ -33,7 +34,7 @@ class MessageController(
 
     @GetMapping("/{messageId}")
     suspend fun getMessage(
-        @PathVariable messageId: String,
+        @PathVariable messageId: MessageId,
     ): ResponseEntity<Message> {
         val message = messageRepository.findMessage(messageId) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(message)

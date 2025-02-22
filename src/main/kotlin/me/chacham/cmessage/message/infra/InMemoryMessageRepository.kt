@@ -1,15 +1,16 @@
 package me.chacham.cmessage.message.infra
 
 import me.chacham.cmessage.message.domain.Message
+import me.chacham.cmessage.message.domain.MessageId
 import me.chacham.cmessage.message.repository.MessageRepository
 import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
 class InMemoryMessageRepository: MessageRepository {
-    private val messages = mutableMapOf<String, Message>()
+    private val messages = mutableMapOf<MessageId, Message>()
 
-    override suspend fun saveMessage(senderId: String, receiverId: String, content: String): String {
+    override suspend fun saveMessage(senderId: String, receiverId: String, content: String): MessageId {
         synchronized(this) {
             val messageId = generateMessageId()
             val message = Message(
@@ -31,13 +32,13 @@ class InMemoryMessageRepository: MessageRepository {
         }
     }
 
-    override suspend fun findMessage(messageId: String): Message? {
+    override suspend fun findMessage(messageId: MessageId): Message? {
         synchronized(this) {
             return messages[messageId]
         }
     }
 
-    private fun generateMessageId(): String {
-        return UUID.randomUUID().toString()
+    private fun generateMessageId(): MessageId {
+        return MessageId(UUID.randomUUID().toString())
     }
 }
