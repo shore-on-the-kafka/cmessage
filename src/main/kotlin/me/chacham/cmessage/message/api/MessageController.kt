@@ -3,6 +3,7 @@ package me.chacham.cmessage.message.api
 import me.chacham.cmessage.message.domain.Message
 import me.chacham.cmessage.message.domain.MessageId
 import me.chacham.cmessage.message.repository.MessageRepository
+import me.chacham.cmessage.user.domain.UserId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -25,8 +26,8 @@ class MessageController(
 
     @GetMapping
     suspend fun getMessages(
-        @RequestParam("senderId") senderId: String?,
-        @RequestParam("receiverId") receiverId: String?,
+        @RequestParam("senderId") senderId: UserId?,
+        @RequestParam("receiverId") receiverId: UserId?,
     ): ResponseEntity<List<Message>> {
         val messages = messageRepository.findMessages(senderId, receiverId)
         return ResponseEntity.ok(messages)

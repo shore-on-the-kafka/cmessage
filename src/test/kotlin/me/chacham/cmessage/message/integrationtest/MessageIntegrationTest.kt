@@ -8,6 +8,7 @@ import me.chacham.cmessage.message.api.SendMessageRequest
 import me.chacham.cmessage.message.api.SendMessageResponse
 import me.chacham.cmessage.message.domain.Message
 import me.chacham.cmessage.message.repository.MessageRepository
+import me.chacham.cmessage.user.domain.UserId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
@@ -36,8 +37,8 @@ class MessageDocumentTest {
 
     @Test
     fun `sendMessage responses 201 Created with created resource as body and Location header`() {
-        val senderId = UUID.randomUUID().toString()
-        val receiverId = UUID.randomUUID().toString()
+        val senderId = UserId(UUID.randomUUID().toString())
+        val receiverId = UserId(UUID.randomUUID().toString())
         val request = fm.giveMeKotlinBuilder<SendMessageRequest>()
             .setExp(SendMessageRequest::senderId, senderId)
             .setExp(SendMessageRequest::receiverId, receiverId)
@@ -72,8 +73,8 @@ class MessageDocumentTest {
 
     @Test
     fun `getMessages responses message list`() {
-        val senderId = UUID.randomUUID().toString()
-        val receiverId = UUID.randomUUID().toString()
+        val senderId = UserId(UUID.randomUUID().toString())
+        val receiverId = UserId(UUID.randomUUID().toString())
 
         val requests = fm.giveMeKotlinBuilder<SendMessageRequest>()
             .setExp(SendMessageRequest::senderId, senderId)
@@ -88,7 +89,7 @@ class MessageDocumentTest {
         }
 
         val messages = webTestClient.get()
-            .uri("/api/v1/messages?senderId=${senderId}&receiverId=${receiverId}")
+            .uri("/api/v1/messages?senderId=${senderId.id}&receiverId=${receiverId.id}")
             .exchange()
             .expectStatus().isOk
             .expectBodyList(Message::class.java)
@@ -117,8 +118,8 @@ class MessageDocumentTest {
 
     @Test
     fun `getMessage responses found message`() {
-        val senderId = UUID.randomUUID().toString()
-        val receiverId = UUID.randomUUID().toString()
+        val senderId = UserId(UUID.randomUUID().toString())
+        val receiverId = UserId(UUID.randomUUID().toString())
 
         val request = fm.giveMeKotlinBuilder<SendMessageRequest>()
             .setExp(SendMessageRequest::senderId, senderId)

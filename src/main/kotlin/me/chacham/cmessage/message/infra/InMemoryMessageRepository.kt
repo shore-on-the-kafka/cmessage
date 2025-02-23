@@ -3,6 +3,7 @@ package me.chacham.cmessage.message.infra
 import me.chacham.cmessage.message.domain.Message
 import me.chacham.cmessage.message.domain.MessageId
 import me.chacham.cmessage.message.repository.MessageRepository
+import me.chacham.cmessage.user.domain.UserId
 import org.springframework.stereotype.Repository
 import java.util.*
 
@@ -10,7 +11,7 @@ import java.util.*
 class InMemoryMessageRepository: MessageRepository {
     private val messages = mutableMapOf<MessageId, Message>()
 
-    override suspend fun saveMessage(senderId: String, receiverId: String, content: String): MessageId {
+    override suspend fun saveMessage(senderId: UserId, receiverId: UserId, content: String): MessageId {
         synchronized(this) {
             val messageId = generateMessageId()
             val message = Message(
@@ -24,7 +25,7 @@ class InMemoryMessageRepository: MessageRepository {
         }
     }
 
-    override suspend fun findMessages(senderId: String?, receiverId: String?): List<Message> {
+    override suspend fun findMessages(senderId: UserId?, receiverId: UserId?): List<Message> {
         synchronized(this) {
             return messages.values
                 .filter { senderId == null || it.senderId == senderId }

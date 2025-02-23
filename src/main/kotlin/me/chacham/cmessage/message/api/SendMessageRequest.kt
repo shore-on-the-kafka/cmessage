@@ -1,3 +1,5 @@
 package me.chacham.cmessage.message.api
 
-data class SendMessageRequest(val senderId: String, val receiverId: String, val content: String)
+import me.chacham.cmessage.user.domain.UserId
+
+data class SendMessageRequest(val senderId: UserId, val receiverId: UserId, val content: String)
