@@ -1,11 +1,11 @@
-package me.chacham.cmessage.message.integrationtest
+package me.chacham.cmessage.integrationtest
 
 import com.navercorp.fixturemonkey.FixtureMonkey
 import com.navercorp.fixturemonkey.kotlin.KotlinPlugin
 import com.navercorp.fixturemonkey.kotlin.giveMeKotlinBuilder
-import me.chacham.cmessage.message.api.MessageController
-import me.chacham.cmessage.message.api.SendMessageRequest
-import me.chacham.cmessage.message.api.SendMessageResponse
+import me.chacham.cmessage.api.message.MessageController
+import me.chacham.cmessage.api.message.SendMessageRequest
+import me.chacham.cmessage.api.message.SendMessageResponse
 import me.chacham.cmessage.message.domain.Message
 import me.chacham.cmessage.message.repository.MessageRepository
 import me.chacham.cmessage.user.domain.UserId
@@ -68,7 +68,6 @@ class MessageDocumentTest {
                     ),
                 )
             )
-            .returnResult()
     }
 
     @Test
