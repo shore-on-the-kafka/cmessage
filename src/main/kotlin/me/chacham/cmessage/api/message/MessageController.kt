@@ -1,5 +1,9 @@
 package me.chacham.cmessage.api.message
 
+import me.chacham.cmessage.address.domain.Address
+import me.chacham.cmessage.address.domain.GroupAddress
+import me.chacham.cmessage.address.domain.UserAddress
+import me.chacham.cmessage.group.domain.GroupId
 import me.chacham.cmessage.message.domain.Message
 import me.chacham.cmessage.message.domain.MessageId
 import me.chacham.cmessage.message.repository.MessageRepository
@@ -19,7 +23,7 @@ class MessageController(
     suspend fun sendMessage(
         @RequestBody request: SendMessageRequest,
     ): ResponseEntity<SendMessageResponse> {
-        val messageId = messageRepository.saveMessage(request.senderId, request.receiverId, request.content)
+        val messageId = messageRepository.saveMessage(request.senderAddress, request.receiverAddress, request.content)
         return ResponseEntity.created(URI.create("${baseUrl}/api/v1/messages/${messageId}"))
             .body(SendMessageResponse(messageId))
     }
@@ -27,9 +31,22 @@ class MessageController(
     @GetMapping
     suspend fun getMessages(
         @RequestParam("senderId") senderId: UserId?,
+        @RequestParam("senderGroupId") senderGroupId: GroupId?,
+        @RequestParam("senderAddress") senderAddress: Address?,
         @RequestParam("receiverId") receiverId: UserId?,
+        @RequestParam("receiverGroupId") receiverGroupId: GroupId?,
+        @RequestParam("receiverAddress") receiverAddress: Address?,
     ): ResponseEntity<List<Message>> {
-        val messages = messageRepository.findMessages(senderId, receiverId)
+        if (listOfNotNull(senderId, senderGroupId, senderAddress).size > 1) {
+            return ResponseEntity.badRequest().build()
+        }
+        val senderAddr = senderAddress ?: senderId?.let { UserAddress(it) } ?: senderGroupId?.let { GroupAddress(it) }
+        if (listOfNotNull(receiverId, receiverGroupId, receiverAddress).size > 1) {
+            return ResponseEntity.badRequest().build()
+        }
+        val receiverAddr =
+            receiverAddress ?: receiverId?.let { UserAddress(it) } ?: receiverGroupId?.let { GroupAddress(it) }
+        val messages = messageRepository.findMessages(senderAddr, receiverAddr)
         return ResponseEntity.ok(messages)
     }
 

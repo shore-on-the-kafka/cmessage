@@ -3,6 +3,7 @@ package me.chacham.cmessage.integrationtest
 import com.navercorp.fixturemonkey.FixtureMonkey
 import com.navercorp.fixturemonkey.kotlin.KotlinPlugin
 import com.navercorp.fixturemonkey.kotlin.giveMeKotlinBuilder
+import me.chacham.cmessage.address.domain.UserAddress
 import me.chacham.cmessage.api.message.MessageController
 import me.chacham.cmessage.api.message.SendMessageRequest
 import me.chacham.cmessage.api.message.SendMessageResponse
@@ -28,7 +29,7 @@ import kotlin.test.assertEquals
 
 @WebFluxTest(MessageController::class, MessageRepository::class)
 @AutoConfigureRestDocs
-class MessageDocumentTest {
+class MessageIntegrationTest {
 
     private val fm = FixtureMonkey.builder().plugin(KotlinPlugin()).build()
 
@@ -37,11 +38,11 @@ class MessageDocumentTest {
 
     @Test
     fun `sendMessage responses 201 Created with created resource as body and Location header`() {
-        val senderId = UserId(UUID.randomUUID().toString())
-        val receiverId = UserId(UUID.randomUUID().toString())
+        val senderId = UserAddress(UserId(UUID.randomUUID().toString()))
+        val receiverId = UserAddress(UserId(UUID.randomUUID().toString()))
         val request = fm.giveMeKotlinBuilder<SendMessageRequest>()
-            .setExp(SendMessageRequest::senderId, senderId)
-            .setExp(SendMessageRequest::receiverId, receiverId)
+            .setExp(SendMessageRequest::senderAddress, senderId)
+            .setExp(SendMessageRequest::receiverAddress, receiverId)
             .sample()
         val baseUrl = "http://localhost:8080"
 
