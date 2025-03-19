@@ -1,10 +1,9 @@
-package me.chacham.cmessage.message.domain
+package me.chacham.cmessage.api.message
 
 import me.chacham.cmessage.group.domain.GroupId
 import me.chacham.cmessage.user.domain.UserId
 
-data class Message(
-    val messageId: MessageId,
+data class SendMessageRequest(
     val senderId: UserId,
     val receiverId: UserId?,
     val groupId: GroupId?,

@@ -18,7 +18,7 @@ class InMemoryMessageRepositoryTest {
         val content = "content"
 
         // when
-        val messageId = runBlocking { cut.saveMessage(senderId, receiverId, content) }
+        val messageId = runBlocking { cut.saveMessage(senderId, receiverId, null, content) }
 
         // then
         val message = runBlocking { cut.findMessage(messageId) }
@@ -34,9 +34,10 @@ class InMemoryMessageRepositoryTest {
         val senderId = UserId(UUID.randomUUID().toString())
         val receiverId = UserId(UUID.randomUUID().toString())
         val content = "content"
-        val messageId1 = runBlocking { cut.saveMessage(senderId, receiverId, content) }
-        val messageId2 = runBlocking { cut.saveMessage(senderId, receiverId, content) }
-        val messageId3 = runBlocking { cut.saveMessage(UserId(UUID.randomUUID().toString()), receiverId, content) }
+        val messageId1 = runBlocking { cut.saveMessage(senderId, receiverId, null, content) }
+        val messageId2 = runBlocking { cut.saveMessage(senderId, receiverId, null, content) }
+        val messageId3 =
+            runBlocking { cut.saveMessage(UserId(UUID.randomUUID().toString()), receiverId, null, content) }
 
         // when
         val messages = runBlocking { cut.findMessages(senderId, receiverId) }
@@ -54,7 +55,7 @@ class InMemoryMessageRepositoryTest {
         val senderId = UserId(UUID.randomUUID().toString())
         val receiverId = UserId(UUID.randomUUID().toString())
         val content = "content"
-        val messageId = runBlocking { cut.saveMessage(senderId, receiverId, content) }
+        val messageId = runBlocking { cut.saveMessage(senderId, receiverId, null, content) }
 
         // when
         val message = runBlocking { cut.findMessage(messageId) }

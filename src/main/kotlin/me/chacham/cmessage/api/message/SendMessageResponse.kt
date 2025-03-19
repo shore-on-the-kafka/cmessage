@@ -1,4 +1,4 @@
-package me.chacham.cmessage.message.api
+package me.chacham.cmessage.api.message
 
 import me.chacham.cmessage.message.domain.MessageId
 
