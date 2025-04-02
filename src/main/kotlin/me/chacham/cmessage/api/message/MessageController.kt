@@ -4,9 +4,11 @@ import me.chacham.cmessage.group.domain.GroupId
 import me.chacham.cmessage.message.domain.Message
 import me.chacham.cmessage.message.domain.MessageId
 import me.chacham.cmessage.message.service.MessageService
+import me.chacham.cmessage.user.domain.User
 import me.chacham.cmessage.user.domain.UserId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import java.net.URI
@@ -19,6 +21,7 @@ class MessageController(
 ) {
     @PostMapping
     suspend fun sendMessage(
+        @AuthenticationPrincipal user: User,
         @Validated @RequestBody request: SendMessageRequest,
     ): ResponseEntity<SendMessageResponse> {
         if (request.receiverId != null && request.groupId != null) {
@@ -26,14 +29,14 @@ class MessageController(
             return ResponseEntity.badRequest().build()
         }
         if (request.receiverId != null) {
-            val senderId = request.senderId
+            val senderId = user.id
             val receiverId = request.receiverId
             val messageId = messageService.sendUserMessage(senderId, receiverId, request.content)
             return ResponseEntity.created(URI.create("${baseUrl}/api/v1/messages/${messageId}"))
                 .body(SendMessageResponse(messageId))
         }
         if (request.groupId != null) {
-            val senderId = request.senderId
+            val senderId = user.id
             val groupId = request.groupId
             val messageId = messageService.sendGroupMessage(senderId, groupId, request.content)
             return ResponseEntity.created(URI.create("${baseUrl}/api/v1/messages/${messageId}"))

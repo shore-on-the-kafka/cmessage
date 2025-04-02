@@ -7,10 +7,11 @@ import me.chacham.cmessage.message.repository.MessageRepository
 import me.chacham.cmessage.user.domain.UserId
 import org.springframework.stereotype.Repository
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 @Repository
 class InMemoryMessageRepository : MessageRepository {
-    private val messages = mutableMapOf<MessageId, Message>()
+    private val messages = ConcurrentHashMap<MessageId, Message>()
 
     override suspend fun saveMessage(
         senderId: UserId,

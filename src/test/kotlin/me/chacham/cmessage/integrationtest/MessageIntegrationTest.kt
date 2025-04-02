@@ -3,21 +3,29 @@ package me.chacham.cmessage.integrationtest
 import com.navercorp.fixturemonkey.FixtureMonkey
 import com.navercorp.fixturemonkey.kotlin.KotlinPlugin
 import com.navercorp.fixturemonkey.kotlin.giveMeKotlinBuilder
+import me.chacham.cmessage.api.auth.*
 import me.chacham.cmessage.api.group.CreateGroupRequest
 import me.chacham.cmessage.api.group.CreateGroupResponse
 import me.chacham.cmessage.api.group.GroupController
 import me.chacham.cmessage.api.message.MessageController
 import me.chacham.cmessage.api.message.SendMessageRequest
 import me.chacham.cmessage.api.message.SendMessageResponse
+import me.chacham.cmessage.common.config.JwtService
+import me.chacham.cmessage.common.config.SecurityConfig
 import me.chacham.cmessage.group.domain.GroupId
-import me.chacham.cmessage.group.repository.GroupRepository
+import me.chacham.cmessage.group.infra.InMemoryGroupRepository
 import me.chacham.cmessage.message.domain.Message
-import me.chacham.cmessage.message.repository.MessageRepository
+import me.chacham.cmessage.message.infra.InMemoryMessageRepository
 import me.chacham.cmessage.message.service.MessageService
+import me.chacham.cmessage.user.domain.User
 import me.chacham.cmessage.user.domain.UserId
+import me.chacham.cmessage.user.infra.InMemoryUserRepository
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.restdocs.operation.preprocess.Preprocessors.*
@@ -29,15 +37,14 @@ import org.springframework.test.web.reactive.server.WebTestClient.ListBodySpec
 import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.web.reactive.function.BodyInserters
 import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 @WebFluxTest(
-    MessageController::class,
-    MessageService::class,
-    MessageRepository::class,
-    GroupController::class,
-    GroupRepository::class
+    MessageController::class
+)
+@Import(
+    AuthController::class, SecurityConfig::class, InMemoryUserRepository::class, JwtService::class,
+    GroupController::class, InMemoryGroupRepository::class,
+    MessageService::class, InMemoryMessageRepository::class,
 )
 @AutoConfigureRestDocs
 class MessageIntegrationTest {
@@ -49,11 +56,10 @@ class MessageIntegrationTest {
 
     @Test
     fun `sendMessage responses 201 Created with created resource as body and Location header`() {
-        val senderId = UserId(UUID.randomUUID().toString())
-        val receiverId = UserId(UUID.randomUUID().toString())
+        val sender = register()
+        val receiver = register()
         val request = fm.giveMeKotlinBuilder<SendMessageRequest>()
-            .setExp(SendMessageRequest::senderId, senderId)
-            .setExp(SendMessageRequest::receiverId, receiverId)
+            .setExp(SendMessageRequest::receiverId, receiver.id)
             .setNullExp(SendMessageRequest::groupId)
             .sample()
         val baseUrl = "http://localhost:8080"
@@ -61,6 +67,7 @@ class MessageIntegrationTest {
         webTestClient.post()
             .uri("/api/v1/messages")
             .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer ${login(sender)}")
             .body(BodyInserters.fromValue(request))
             .exchange()
             .expectStatus().isCreated
@@ -72,7 +79,6 @@ class MessageIntegrationTest {
                     preprocessRequest(prettyPrint()),
                     preprocessResponse(prettyPrint()),
                     requestFields(
-                        fieldWithPath("senderId").description("senderId"),
                         fieldWithPath("receiverId").description("receiverId").optional(),
                         fieldWithPath("groupId").description("groupId").optional(),
                         fieldWithPath("content").description("content"),
@@ -86,26 +92,25 @@ class MessageIntegrationTest {
 
     @Test
     fun `getMessages responses message list`() {
-        val senderId = UserId(UUID.randomUUID().toString())
-        val receiverId = UserId(UUID.randomUUID().toString())
+        val sender = register()
+        val receiver = register()
         val groupId = GroupId(UUID.randomUUID().toString())
 
         val requests = fm.giveMeKotlinBuilder<SendMessageRequest>()
-            .setExp(SendMessageRequest::senderId, senderId)
-            .setExp(SendMessageRequest::receiverId, receiverId)
+            .setExp(SendMessageRequest::receiverId, receiver.id)
             .setNullExp(SendMessageRequest::groupId)
             .sampleList(2)
         requests.forEach { request ->
             webTestClient.post()
                 .uri("/api/v1/messages")
                 .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer ${login(sender)}")
                 .body(BodyInserters.fromValue(request))
                 .exchange()
         }
 
 
         val groupRequests = fm.giveMeKotlinBuilder<SendMessageRequest>()
-            .setExp(SendMessageRequest::senderId, senderId)
             .setNullExp(SendMessageRequest::receiverId)
             .setExp(SendMessageRequest::groupId, groupId)
             .sampleList(2)
@@ -117,7 +122,8 @@ class MessageIntegrationTest {
                 .exchange()
         }
         val messages = webTestClient.get()
-            .uri("/api/v1/messages?userIdPair=${senderId.id}+${receiverId.id}")
+            .uri("/api/v1/messages?userIdPair={senderId}+{receiverId}", sender.id.id, receiver.id.id)
+            .header("Authorization", "Bearer ${login(sender)}")
             .exchange()
             .expectStatus().isOk
             .expectBodyList(Message::class.java)
@@ -149,55 +155,51 @@ class MessageIntegrationTest {
 
     @Test
     fun `getMessages responses message list with receiverId`() {
-        val senderId = UserId(UUID.randomUUID().toString())
-        val receiverId = UserId(UUID.randomUUID().toString())
+        val sender = register()
+        val receiver = register()
 
-        val createGroupRequest = fm.giveMeKotlinBuilder<CreateGroupRequest>().sample()
+        val createGroupRequest = fm.giveMeKotlinBuilder<CreateGroupRequest>()
+            .setExp(CreateGroupRequest::members, listOf(sender.id, receiver.id))
+            .sample()
         val groupId = webTestClient.post()
             .uri("/api/v1/groups")
             .contentType(MediaType.APPLICATION_JSON)
-            .header("X-User-Id", "test-user-id")
+            .header("Authorization", "Bearer ${login(sender)}")
             .body(BodyInserters.fromValue(createGroupRequest))
             .exchange()
             .expectBody<CreateGroupResponse>()
             .returnResult()
             .responseBody!!.groupId
 
-        val addUsersRequest = mapOf("users" to listOf(senderId, receiverId))
-        webTestClient.post()
-            .uri("/api/v1/groups/{groupId}/members", groupId.id)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(addUsersRequest))
-            .exchange()
-
-        val requests = fm.giveMeKotlinBuilder<SendMessageRequest>()
-            .setExp(SendMessageRequest::senderId, senderId)
-            .setExp(SendMessageRequest::receiverId, receiverId)
+        val sendMessageRequests = fm.giveMeKotlinBuilder<SendMessageRequest>()
+            .setExp(SendMessageRequest::receiverId, receiver.id)
             .setNullExp(SendMessageRequest::groupId)
             .sampleList(2)
-        requests.forEach { request ->
+        sendMessageRequests.forEach { request ->
             webTestClient.post()
                 .uri("/api/v1/messages")
+                .header("Authorization", "Bearer ${login(sender)}")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(request))
                 .exchange()
         }
 
         val groupRequests = fm.giveMeKotlinBuilder<SendMessageRequest>()
-            .setExp(SendMessageRequest::senderId, senderId)
             .setNullExp(SendMessageRequest::receiverId)
             .setExp(SendMessageRequest::groupId, groupId)
             .sampleList(2)
         groupRequests.forEach { request ->
             webTestClient.post()
                 .uri("/api/v1/messages")
+                .header("Authorization", "Bearer ${login(sender)}")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(request))
                 .exchange()
         }
 
         val messages = webTestClient.get()
-            .uri("/api/v1/messages?receiverId=${receiverId.id}")
+            .uri("/api/v1/messages?receiverId={receiverId}", receiver.id.id)
+            .header("Authorization", "Bearer ${login(sender)}")
             .exchange()
             .expectStatus().isOk
             .expectBodyList(Message::class.java)
@@ -223,22 +225,21 @@ class MessageIntegrationTest {
             )
             .returnResult()
             .responseBody!!
-
         assertEquals(4, messages.size)
     }
 
     @Test
     fun `getMessage responses found message`() {
-        val senderId = UserId(UUID.randomUUID().toString())
-        val receiverId = UserId(UUID.randomUUID().toString())
+        val sender = register()
+        val receiver = register()
 
         val request = fm.giveMeKotlinBuilder<SendMessageRequest>()
-            .setExp(SendMessageRequest::senderId, senderId)
-            .setExp(SendMessageRequest::receiverId, receiverId)
+            .setExp(SendMessageRequest::receiverId, receiver.id)
             .setNullExp(SendMessageRequest::groupId)
             .sample()
         val responseMessageId = webTestClient.post()
             .uri("/api/v1/messages")
+            .header("Authorization", "Bearer ${login(sender)}")
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(request))
             .exchange()
@@ -248,6 +249,7 @@ class MessageIntegrationTest {
 
         webTestClient.get()
             .uri("/api/v1/messages/{messageId}", responseMessageId.id)
+            .header("Authorization", "Bearer ${login(sender)}")
             .exchange()
             .expectStatus().isOk
             .expectBody(Message::class.java)
@@ -268,5 +270,36 @@ class MessageIntegrationTest {
                     )
                 )
             )
+    }
+
+    private fun register(): User {
+        val registerRequest = fm.giveMeKotlinBuilder<RegisterRequest>().sample()
+        val response = webTestClient.post()
+            .uri("/api/v1/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(registerRequest))
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<RegisterSuccessResponse>()
+            .returnResult()
+            .responseBody!!
+        return User(
+            id = UserId(response.id),
+            username = response.username,
+            password = registerRequest.password,
+        )
+    }
+
+    private fun login(user: User): String {
+        val loginRequest = LoginRequest(user.username, user.password)
+        return webTestClient.post()
+            .uri("/api/v1/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(loginRequest))
+            .exchange()
+            .expectStatus().isOk
+            .expectBody<LoginSuccessResponse>()
+            .returnResult()
+            .responseBody!!.token
     }
 }
