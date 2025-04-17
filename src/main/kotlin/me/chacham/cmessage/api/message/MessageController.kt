@@ -65,8 +65,9 @@ class MessageController(
             return ResponseEntity.ok(messages)
         }
         if (userIdPair != null) {
-            val messages = messageService.findSenderReceiverMessages(userIdPair.userId1, userIdPair.userId2)
-            return ResponseEntity.ok(messages)
+            val messages1to2 = messageService.findSenderReceiverMessages(userIdPair.userId1, userIdPair.userId2)
+            val messages2to1 = messageService.findSenderReceiverMessages(userIdPair.userId2, userIdPair.userId1)
+            return ResponseEntity.ok(messages1to2 + messages2to1)
         }
         if (groupId != null) {
             val messages = messageService.findGroupMessages(groupId)

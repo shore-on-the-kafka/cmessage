@@ -33,8 +33,10 @@ class InMemoryMessageRepository : MessageRepository {
 
     override suspend fun findMessages(senderId: UserId?, receiverId: UserId?): List<Message> {
         return messages.values
-            .filter { senderId == null || it.senderId == senderId }
-            .filter { receiverId == null || it.receiverId == receiverId }
+            .filter {
+                (senderId != null && it.senderId == senderId) ||
+                        (receiverId != null && it.receiverId == receiverId)
+            }
     }
 
     override suspend fun findGroupMessages(groupId: GroupId): List<Message> {
