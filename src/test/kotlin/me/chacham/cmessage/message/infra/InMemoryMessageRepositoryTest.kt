@@ -31,13 +31,12 @@ class InMemoryMessageRepositoryTest {
     @Test
     fun `findMessages should return messages with matching senderId and receiverId`() {
         // given
-        val senderId = UserId(UUID.randomUUID().toString())
-        val receiverId = UserId(UUID.randomUUID().toString())
+        val senderId = generateUserId()
+        val receiverId = generateUserId()
         val content = "content"
-        val messageId1 = runBlocking { cut.saveMessage(senderId, receiverId, null, content) }
-        val messageId2 = runBlocking { cut.saveMessage(senderId, receiverId, null, content) }
-        val messageId3 =
-            runBlocking { cut.saveMessage(UserId(UUID.randomUUID().toString()), receiverId, null, content) }
+        val messageId1 = runBlocking { cut.saveMessage(senderId, generateUserId(), null, content) }
+        val messageId2 = runBlocking { cut.saveMessage(generateUserId(), receiverId, null, content) }
+        val messageId3 = runBlocking { cut.saveMessage(generateUserId(), generateUserId(), null, content) }
 
         // when
         val messages = runBlocking { cut.findMessages(senderId, receiverId) }
@@ -65,5 +64,9 @@ class InMemoryMessageRepositoryTest {
         assertEquals(senderId, message?.senderId)
         assertEquals(receiverId, message?.receiverId)
         assertEquals(content, message?.content)
+    }
+
+    private fun generateUserId(): UserId {
+        return UserId(UUID.randomUUID().toString())
     }
 }
