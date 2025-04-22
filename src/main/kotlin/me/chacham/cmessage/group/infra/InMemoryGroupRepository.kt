@@ -6,10 +6,11 @@ import me.chacham.cmessage.group.repository.GroupRepository
 import me.chacham.cmessage.user.domain.UserId
 import org.springframework.stereotype.Repository
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 @Repository
 class InMemoryGroupRepository: GroupRepository {
-    private val groups = mutableMapOf<GroupId, Group>()
+    private val groups = ConcurrentHashMap<GroupId, Group>()
 
     override suspend fun saveGroup(name: String, members: List<UserId>): GroupId {
         val groupId = generateGroupId()

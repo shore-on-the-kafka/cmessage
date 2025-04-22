@@ -3,9 +3,11 @@ package me.chacham.cmessage.api.group
 import me.chacham.cmessage.group.domain.Group
 import me.chacham.cmessage.group.domain.GroupId
 import me.chacham.cmessage.group.repository.GroupRepository
+import me.chacham.cmessage.user.domain.User
 import me.chacham.cmessage.user.domain.UserId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.net.URI
 
@@ -17,11 +19,11 @@ class GroupController(
 ) {
     @PostMapping
     suspend fun createGroup(
-        @RequestHeader("X-User-Id") userId: UserId,
+        @AuthenticationPrincipal user: User,
         @RequestBody request: CreateGroupRequest,
     ): ResponseEntity<CreateGroupResponse> {
         // TODO: Add validation for duplicated group name
-        val groupId = groupRepository.saveGroup(request.name, listOf(userId))
+        val groupId = groupRepository.saveGroup(request.name, listOf(user.id) + request.members)
         return ResponseEntity.created(URI.create("${baseUrl}/api/v1/groups/${groupId.id}"))
             .body(CreateGroupResponse(groupId))
     }

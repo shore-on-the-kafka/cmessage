@@ -7,10 +7,11 @@ import me.chacham.cmessage.message.repository.MessageRepository
 import me.chacham.cmessage.user.domain.UserId
 import org.springframework.stereotype.Repository
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 @Repository
 class InMemoryMessageRepository : MessageRepository {
-    private val messages = mutableMapOf<MessageId, Message>()
+    private val messages = ConcurrentHashMap<MessageId, Message>()
 
     override suspend fun saveMessage(
         senderId: UserId,
@@ -32,8 +33,10 @@ class InMemoryMessageRepository : MessageRepository {
 
     override suspend fun findMessages(senderId: UserId?, receiverId: UserId?): List<Message> {
         return messages.values
-            .filter { senderId == null || it.senderId == senderId }
-            .filter { receiverId == null || it.receiverId == receiverId }
+            .filter {
+                (senderId != null && it.senderId == senderId) ||
+                        (receiverId != null && it.receiverId == receiverId)
+            }
     }
 
     override suspend fun findGroupMessages(groupId: GroupId): List<Message> {
