@@ -11,6 +11,7 @@ import me.chacham.cmessage.api.group.CreateGroupRequest
 import me.chacham.cmessage.api.group.CreateGroupResponse
 import me.chacham.cmessage.api.group.GroupController
 import me.chacham.cmessage.api.user.UserController
+import me.chacham.cmessage.auth.service.AuthService
 import me.chacham.cmessage.common.config.JwtService
 import me.chacham.cmessage.common.config.SecurityConfig
 import me.chacham.cmessage.group.infra.InMemoryGroupRepository
@@ -25,6 +26,7 @@ import org.springframework.http.MediaType
 import org.springframework.restdocs.operation.preprocess.Preprocessors.*
 import org.springframework.restdocs.payload.PayloadDocumentation.*
 import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.web.reactive.function.BodyInserters
@@ -37,6 +39,9 @@ import org.springframework.web.reactive.function.BodyInserters
 @AutoConfigureRestDocs
 class GroupIntegrationTest {
     private val fm = FixtureMonkey.builder().plugin(KotlinPlugin()).build()
+   
+    @MockitoBean
+    private lateinit var authService: AuthService
 
     @Autowired
     private lateinit var webTestClient: WebTestClient

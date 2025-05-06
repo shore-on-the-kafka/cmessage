@@ -6,6 +6,7 @@ import com.navercorp.fixturemonkey.kotlin.giveMeKotlinBuilder
 import me.chacham.cmessage.api.auth.*
 import me.chacham.cmessage.api.message.MessageController
 import me.chacham.cmessage.api.message.SendMessageRequest
+import me.chacham.cmessage.auth.service.AuthService
 import me.chacham.cmessage.common.config.JwtService
 import me.chacham.cmessage.common.config.SecurityConfig
 import me.chacham.cmessage.group.infra.InMemoryGroupRepository
@@ -21,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.test.web.reactive.server.expectBodyList
@@ -34,6 +36,8 @@ import org.springframework.web.reactive.function.BodyInserters
     MessageService::class, InMemoryMessageRepository::class, InMemoryGroupRepository::class
 )
 class OneOnOneMessageTest {
+    @MockitoBean
+    private lateinit var authService: AuthService
 
     private val fm = FixtureMonkey.builder().plugin(KotlinPlugin()).build()
 
