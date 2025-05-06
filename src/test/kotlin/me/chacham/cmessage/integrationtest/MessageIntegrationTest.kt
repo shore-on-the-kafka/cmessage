@@ -10,6 +10,7 @@ import me.chacham.cmessage.api.group.GroupController
 import me.chacham.cmessage.api.message.MessageController
 import me.chacham.cmessage.api.message.SendMessageRequest
 import me.chacham.cmessage.api.message.SendMessageResponse
+import me.chacham.cmessage.auth.service.AuthService
 import me.chacham.cmessage.common.config.JwtService
 import me.chacham.cmessage.common.config.SecurityConfig
 import me.chacham.cmessage.group.domain.GroupId
@@ -32,6 +33,7 @@ import org.springframework.restdocs.operation.preprocess.Preprocessors.*
 import org.springframework.restdocs.payload.PayloadDocumentation.*
 import org.springframework.restdocs.request.RequestDocumentation.*
 import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.WebTestClient.ListBodySpec
 import org.springframework.test.web.reactive.server.expectBody
@@ -48,8 +50,10 @@ import java.util.*
 )
 @AutoConfigureRestDocs
 class MessageIntegrationTest {
-
     private val fm = FixtureMonkey.builder().plugin(KotlinPlugin()).build()
+
+    @MockitoBean
+    private lateinit var authService: AuthService
 
     @Autowired
     private lateinit var webTestClient: WebTestClient

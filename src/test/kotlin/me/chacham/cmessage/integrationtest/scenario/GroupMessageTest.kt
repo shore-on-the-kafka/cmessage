@@ -9,6 +9,7 @@ import me.chacham.cmessage.api.group.CreateGroupResponse
 import me.chacham.cmessage.api.group.GroupController
 import me.chacham.cmessage.api.message.MessageController
 import me.chacham.cmessage.api.message.SendMessageRequest
+import me.chacham.cmessage.auth.service.AuthService
 import me.chacham.cmessage.common.config.JwtService
 import me.chacham.cmessage.common.config.SecurityConfig
 import me.chacham.cmessage.group.domain.GroupId
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.test.web.reactive.server.expectBodyList
@@ -41,8 +43,10 @@ import org.springframework.web.reactive.function.BodyInserters
     InMemoryGroupRepository::class
 )
 class GroupMessageTest {
-
     private val fm = FixtureMonkey.builder().plugin(KotlinPlugin()).build()
+
+    @MockitoBean
+    private lateinit var authService: AuthService
 
     @Autowired
     private lateinit var webTestClient: WebTestClient
