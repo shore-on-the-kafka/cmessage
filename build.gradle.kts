@@ -39,11 +39,13 @@ dependencies {
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	testImplementation("io.mockk:mockk:1.13.16")
+	testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 	testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient:3.0.3")
+	testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 	testImplementation("com.navercorp.fixturemonkey:fixture-monkey-starter-kotlin:1.1.9")
 }
 
