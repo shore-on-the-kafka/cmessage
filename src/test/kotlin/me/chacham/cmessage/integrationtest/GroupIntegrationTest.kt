@@ -1,21 +1,22 @@
 package me.chacham.cmessage.integrationtest
 
-import com.navercorp.fixturemonkey.FixtureMonkey
-import com.navercorp.fixturemonkey.kotlin.KotlinPlugin
 import com.navercorp.fixturemonkey.kotlin.giveMeKotlinBuilder
 import me.chacham.cmessage.api.auth.AuthController
-import me.chacham.cmessage.api.auth.LoginRequest
 import me.chacham.cmessage.api.auth.LoginSuccessResponse
-import me.chacham.cmessage.api.auth.RegisterRequest
 import me.chacham.cmessage.api.group.CreateGroupRequest
 import me.chacham.cmessage.api.group.CreateGroupResponse
 import me.chacham.cmessage.api.group.GroupController
 import me.chacham.cmessage.api.user.UserController
+import me.chacham.cmessage.auth.domain.UserInfo
+import me.chacham.cmessage.auth.service.AuthService
 import me.chacham.cmessage.common.config.JwtService
 import me.chacham.cmessage.common.config.SecurityConfig
 import me.chacham.cmessage.group.infra.InMemoryGroupRepository
+import me.chacham.cmessage.testutil.FixtureMonkeyUtil.FM
 import me.chacham.cmessage.user.infra.InMemoryUserRepository
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.wheneverBlocking
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
@@ -25,6 +26,7 @@ import org.springframework.http.MediaType
 import org.springframework.restdocs.operation.preprocess.Preprocessors.*
 import org.springframework.restdocs.payload.PayloadDocumentation.*
 import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.web.reactive.function.BodyInserters
@@ -36,7 +38,8 @@ import org.springframework.web.reactive.function.BodyInserters
 )
 @AutoConfigureRestDocs
 class GroupIntegrationTest {
-    private val fm = FixtureMonkey.builder().plugin(KotlinPlugin()).build()
+    @MockitoBean
+    private lateinit var authService: AuthService
 
     @Autowired
     private lateinit var webTestClient: WebTestClient
@@ -44,11 +47,11 @@ class GroupIntegrationTest {
     @Test
     fun `createGroup responses 201 Created with created resource as body and Location header`() {
         // Given
-        val request = fm.giveMeKotlinBuilder<CreateGroupRequest>()
+        val request = FM.giveMeKotlinBuilder<CreateGroupRequest>()
             .setExp(CreateGroupRequest::members, listOf("otherMemberId"))
             .sample()
         val baseUrl = "http://localhost:8080"
-        val token = registerAndLogin()
+        val token = login()
 
         // When, Then
         webTestClient.post()
@@ -79,8 +82,8 @@ class GroupIntegrationTest {
     @Test
     fun `getGroup responses 200 OK with group as body`() {
         // Given
-        val request = fm.giveMeKotlinBuilder<CreateGroupRequest>().sample()
-        val token = registerAndLogin()
+        val request = FM.giveMeKotlinBuilder<CreateGroupRequest>().sample()
+        val token = login()
 
         // When
         val createdGroupId = webTestClient.post()
@@ -117,8 +120,8 @@ class GroupIntegrationTest {
     @Test
     fun `addMembers responses 201 Created with Location header`() {
         // Given
-        val createGroupRequest = fm.giveMeKotlinBuilder<CreateGroupRequest>().sample()
-        val token = registerAndLogin()
+        val createGroupRequest = FM.giveMeKotlinBuilder<CreateGroupRequest>().sample()
+        val token = login()
 
         // When
         val createdGroupId = webTestClient.post()
@@ -161,8 +164,8 @@ class GroupIntegrationTest {
     @Test
     fun `getMembers responses 200 OK with members as body`() {
         // Given
-        val createGroupRequest = fm.giveMeKotlinBuilder<CreateGroupRequest>().sample()
-        val token = registerAndLogin()
+        val createGroupRequest = FM.giveMeKotlinBuilder<CreateGroupRequest>().sample()
+        val token = login()
 
         // When
         val createdGroupId = webTestClient.post()
@@ -194,19 +197,20 @@ class GroupIntegrationTest {
             )
     }
 
-    private fun registerAndLogin(): String {
-        val registerRequest = fm.giveMeKotlinBuilder<RegisterRequest>().sample()
-        webTestClient.post()
-            .uri("/api/v1/auth/register")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(registerRequest))
-            .exchange()
-            .expectStatus().isOk
-        val loginRequest = LoginRequest(registerRequest.username, registerRequest.password)
-        return webTestClient.post()
-            .uri("/api/v1/auth/login")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(loginRequest))
+    private fun login(): String {
+        val userInfo = FM.giveMeKotlinBuilder<UserInfo>()
+            .setExp(UserInfo::provider, "test")
+            .setNotNullExp(UserInfo::id)
+            .setNotNullExp(UserInfo::name)
+            .sample()
+        val code = "testcode"
+        wheneverBlocking { authService.exchangeUserInfo("line", code) } doReturn userInfo
+        return webTestClient.get()
+            .uri { builder ->
+                builder.path("/api/v1/auth/login/oauth2/line")
+                    .queryParam("code", code)
+                    .build()
+            }
             .exchange()
             .expectStatus().isOk
             .expectBody<LoginSuccessResponse>()

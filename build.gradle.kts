@@ -1,8 +1,8 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
-	kotlin("jvm") version "1.9.25"
-	kotlin("plugin.spring") version "1.9.25"
+	kotlin("jvm") version "2.1.20"
+	kotlin("plugin.spring") version "2.1.20"
 	id("org.springframework.boot") version "3.4.2"
 	id("io.spring.dependency-management") version "1.1.7"
 	id("org.asciidoctor.jvm.convert") version "4.0.4"
@@ -39,11 +39,13 @@ dependencies {
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	testImplementation("io.mockk:mockk:1.13.16")
+	testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 	testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient:3.0.3")
+	testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 	testImplementation("com.navercorp.fixturemonkey:fixture-monkey-starter-kotlin:1.1.9")
 }
 
