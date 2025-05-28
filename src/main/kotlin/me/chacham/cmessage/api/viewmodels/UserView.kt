@@ -11,7 +11,7 @@ data class UserView(
         fun of(user: User): UserView {
             return UserView(
                 id = user.id,
-                username = user.username,
+                username = user.name,
             )
         }
     }

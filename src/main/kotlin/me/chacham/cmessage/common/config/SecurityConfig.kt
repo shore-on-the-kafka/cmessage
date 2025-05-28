@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.interfaces.DecodedJWT
 import kotlinx.coroutines.reactor.mono
 import me.chacham.cmessage.auth.domain.JwtAuthentication
+import me.chacham.cmessage.user.domain.UserId
 import me.chacham.cmessage.user.repository.UserRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -64,15 +65,15 @@ class SecurityConfig(val jwtService: JwtService) {
             }
             val decodedJWT = jwtService.validateAndDecodeToken(authentication.credentials)
                 ?: return@ReactiveAuthenticationManager Mono.error(BadCredentialsException("Invalid token"))
-            val username = decodedJWT.subject
+            val id = UserId(decodedJWT.subject)
 
-            mono { userRepository.findUserByUsername(username) }
+            mono { userRepository.find(id) }
                 .map { user -> JwtAuthentication(decodedJWT, user) }
         }
     }
 
     @Bean
-    fun serverAuthenticationConverter(jwtService: JwtService): ServerAuthenticationConverter {
+    fun serverAuthenticationConverter(): ServerAuthenticationConverter {
         return ServerAuthenticationConverter { exchange ->
             exchange.request.headers["Authorization"]?.first()?.let { token ->
                 if (token.startsWith("Bearer ")) {
