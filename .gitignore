@@ -39,3 +39,38 @@ out/
 .kotlin
 
 **/.DS_Store
+
+# Frontend related
+frontend/.idea
+frontend/*.class
+frontend/*.log
+frontend/*.pyc
+frontend/*.swp
+frontend/.atom/
+frontend/.build/
+frontend/.buildlog/
+frontend/.history
+frontend/.svn/
+frontend/.swiftpm/
+frontend/migrate_working_dir/
+
+# Flutter/Dart/Pub related
+frontend/**/doc/api/
+frontend/**/ios/Flutter/.last_build_id
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.pub-cache/
+frontend/.pub/
+frontend/build/
+
+# Android Studio will place build artifacts here
+frontend/android/app/debug
+frontend/android/app/profile
+frontend/android/app/release
+
+# Symbolication related
+frontend/app.*.symbols
+
+# Obfuscation related
+frontend/app.*.map.json
