@@ -2,6 +2,7 @@ package me.chacham.cmessage.message.domain
 
 import me.chacham.cmessage.group.domain.GroupId
 import me.chacham.cmessage.user.domain.UserId
+import java.time.Instant
 
 data class Message(
     val messageId: MessageId,
@@ -9,4 +10,5 @@ data class Message(
     val receiverId: UserId?,
     val groupId: GroupId?,
     val content: String,
+    val timestamp: Instant,
 )

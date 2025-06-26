@@ -6,6 +6,7 @@ import me.chacham.cmessage.message.domain.MessageId
 import me.chacham.cmessage.message.repository.MessageRepository
 import me.chacham.cmessage.user.domain.UserId
 import org.springframework.stereotype.Repository
+import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -26,6 +27,7 @@ class InMemoryMessageRepository : MessageRepository {
             receiverId = receiverId,
             groupId = groupId,
             content = content,
+            timestamp = Instant.now(),
         )
         messages[messageId] = message
         return messageId
