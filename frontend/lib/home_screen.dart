@@ -4,6 +4,7 @@ import 'auth_service.dart';
 import 'login_screen.dart';
 import 'message_service.dart';
 import 'user_model.dart';
+import 'group_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,7 +13,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
   final MessageService _messageService = MessageService();
   Future<List<Message>>? _allMessagesFuture;
@@ -21,10 +22,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _receiverIdController = TextEditingController();
   final TextEditingController _messageContentController =
       TextEditingController();
+  
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _allMessagesFuture = _fetchAllMessages();
   }
 
@@ -32,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _receiverIdController.dispose();
     _messageContentController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -114,139 +119,165 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 개인 메시지 탭 위젯
+  Widget _buildPersonalMessageTab() {
+    return Column(
+      children: [
+        Expanded(
+          child: FutureBuilder<List<Message>>(
+            future: _allMessagesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                return RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  child: ListView.builder(
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      final message = snapshot.data![index];
+                      final bool isSentByMe =
+                          message.senderId == _currentUser?.id;
+                      return Card(
+                        margin: const EdgeInsets.all(8.0),
+                        color: isSentByMe ? Colors.green[50] : null,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isSentByMe
+                                    ? '받는 사람: ${message.receiverId}'
+                                    : '보낸 사람: ${message.senderId}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(message.content),
+                              const SizedBox(height: 4),
+                              Text(
+                                '시간: ${message.timestamp.toLocal().toString().split('.')[0]}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }
+
+              Widget content;
+              if (snapshot.hasError) {
+                content = Text('오류: ${snapshot.error}');
+              } else {
+                content = const Text('메시지가 없습니다.');
+              }
+
+              return RefreshIndicator(
+                onRefresh: _handleRefresh,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(child: content),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        // 메시지 전송 UI
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: _receiverIdController,
+                decoration: const InputDecoration(
+                  labelText: '받는 사람 ID',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _messageContentController,
+                decoration: const InputDecoration(
+                  labelText: '메시지 내용',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _sendMessage,
+                  child: const Text('메시지 보내기'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(_currentUser != null
             ? '안녕하세요, ${_currentUser!.name}님'
-            : '나의 메시지함'),
+            : 'CMessage'),
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _handleLogout,
             tooltip: '로그아웃',
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _handleRefresh,
-          ),
+          if (_tabController.index == 0)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _handleRefresh,
+            ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          tabs: const [
+            Tab(
+              icon: Icon(Icons.person),
+              text: '개인 메시지',
+            ),
+            Tab(
+              icon: Icon(Icons.group),
+              text: '그룹 채팅',
+            ),
+          ],
+        ),
       ),
-      body: Column(
-        // Column으로 변경하여 메시지 목록과 입력 필드를 함께 배치
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          Expanded(
-            // 메시지 목록이 남은 공간을 모두 차지하도록 Expanded 사용
-            child: FutureBuilder<List<Message>>(
-              future: _allMessagesFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                  return RefreshIndicator(
-                    onRefresh: _handleRefresh,
-                    child: ListView.builder(
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        final message = snapshot.data![index];
-                        final bool isSentByMe =
-                            message.senderId == _currentUser?.id;
-                        return Card(
-                          margin: const EdgeInsets.all(8.0),
-                          color: isSentByMe ? Colors.green[50] : null,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  isSentByMe
-                                      ? '받는 사람: ${message.receiverId}'
-                                      : '보낸 사람: ${message.senderId}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(message.content),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '시간: ${message.timestamp.toLocal().toString().split('.')[0]}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                }
-
-                // 오류 또는 빈 목록 상태를 처리합니다.
-                // 두 경우 모두 새로고침이 가능하도록 RefreshIndicator로 감쌉니다.
-                Widget content;
-                if (snapshot.hasError) {
-                  content = Text('오류: ${snapshot.error}');
-                } else {
-                  content = const Text('메시지가 없습니다.');
-                }
-
-                return RefreshIndicator(
-                  onRefresh: _handleRefresh,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: Center(child: content),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-          // 메시지 전송 UI
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _receiverIdController,
-                  decoration: const InputDecoration(
-                    labelText: '받는 사람 ID',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _messageContentController,
-                  decoration: const InputDecoration(
-                    labelText: '메시지 내용',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3, // 여러 줄 입력 가능하도록 설정
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity, // 버튼을 가로로 꽉 채움
-                  child: ElevatedButton(
-                    onPressed: _sendMessage,
-                    child: const Text('메시지 보내기'),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildPersonalMessageTab(),
+          const GroupListScreen(),
         ],
       ),
     );
