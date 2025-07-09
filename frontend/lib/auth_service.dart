@@ -1,22 +1,32 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart'; // kDebugMode 사용
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
-class AuthService {
-  final String _baseUrl = "http://localhost:8080";
-  final String _apiPrefix = "/api/v1/auth";
-  final _storage = const FlutterSecureStorage();
+import 'user_model.dart';
 
-  Future<String?> getToken() async {
-    return await _storage.read(key: 'auth_token');
+class AuthService {
+  // Singleton 패턴
+  static final AuthService _instance = AuthService._internal();
+
+  factory AuthService() {
+    return _instance;
   }
 
-  Future<void> _storeToken(String token) async {
-    await _storage.write(key: 'auth_token', value: token);
+  AuthService._internal();
+
+  final String _baseUrl = "http://localhost:8080";
+  final String _apiPrefix = "/api/v1/auth";
+  String? _currentToken; // 토큰을 메모리에만 저장합니다.
+
+  Future<String?> getToken() async {
+    // 토큰을 영구 저장하지 않으므로, 앱 시작 시에는 항상 null을 반환합니다.
+    // 로그인 성공 후에는 메모리에 저장된 토큰을 반환합니다.
+    return _currentToken;
   }
 
   Future<void> deleteToken() async {
-    await _storage.delete(key: 'auth_token');
+    _currentToken = null; // 메모리에서 토큰을 삭제합니다.
   }
 
   // Line 로그인 시작을 위한 URL 가져오기
@@ -33,9 +43,17 @@ class AuthService {
 
       final request = http.Request('GET', requestUrl);
       request.followRedirects = false; // 리디렉션을 자동으로 따르지 않도록 설정
+      if (kDebugMode) {
+        print('Sending request: ${request.method} ${request.url}');
+        print('Request headers: ${request.headers}');
+      }
       final streamedResponse = await client.send(request);
 
-      if (streamedResponse.statusCode == 302 || streamedResponse.statusCode == 301 || streamedResponse.statusCode == 303 || streamedResponse.statusCode == 307 || streamedResponse.statusCode == 308) {
+      if (streamedResponse.statusCode == 302 ||
+          streamedResponse.statusCode == 301 ||
+          streamedResponse.statusCode == 303 ||
+          streamedResponse.statusCode == 307 ||
+          streamedResponse.statusCode == 308) {
         final location = streamedResponse.headers['location'];
         if (kDebugMode) {
           print('Received Line login redirect URL: $location');
@@ -44,7 +62,9 @@ class AuthService {
       } else {
         final response = await http.Response.fromStream(streamedResponse);
         if (kDebugMode) {
-          print('Failed to get Line login initiate URL: ${response.statusCode}');
+          print(
+            'Failed to get Line login initiate URL: ${response.statusCode}',
+          );
           print('Response body: ${response.body}');
         }
         return null;
@@ -61,8 +81,33 @@ class AuthService {
 
   // 백엔드의 OAuth2 콜백 URL (토큰을 포함한 JSON을 반환하는 URL)
   // 이 URL은 InAppWebView에서 감지하여 토큰을 추출하는 데 사용됩니다.
-  String get backendLineCallbackBaseUrl => '$_baseUrl$_apiPrefix/login/oauth2/line';
+  String get backendLineCallbackBaseUrl =>
+      '$_baseUrl$_apiPrefix/login/oauth2/line';
 
+  // 현재 로그인한 사용자 정보를 가져오는 API 호출
+  Future<User> getMe() async {
+    final token = await getToken();
+    if (token == null) {
+      throw Exception('Authentication token not found.');
+    }
+
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/v1/users/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(utf8.decode(response.bodyBytes));
+      return User.fromJson(data);
+    } else {
+      throw Exception(
+        'Failed to load user info: ${response.statusCode} ${response.body}',
+      );
+    }
+  }
 
   // 이메일/비밀번호 로그인 (필요한 경우 기존 코드 유지 또는 추가)
   Future<String?> login(String email, String password) async {
@@ -80,6 +125,6 @@ class AuthService {
 
   // 웹뷰에서 토큰을 성공적으로 가져왔을 때 호출
   Future<void> processTokenFromCallback(String token) async {
-    await _storeToken(token);
+    _currentToken = token; // 토큰을 메모리에 저장합니다.
   }
 }

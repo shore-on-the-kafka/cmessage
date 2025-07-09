@@ -153,6 +153,7 @@ class MessageIntegrationTest {
                         fieldWithPath("[].receiverId").description("receiverId").optional(),
                         fieldWithPath("[].groupId").description("groupId").optional(),
                         fieldWithPath("[].content").description("content"),
+                        fieldWithPath("[].timestamp").description("timestamp"),
                     )
                 )
             )
@@ -229,6 +230,7 @@ class MessageIntegrationTest {
                         fieldWithPath("[].receiverId").description("receiverId").optional(),
                         fieldWithPath("[].groupId").description("groupId").optional(),
                         fieldWithPath("[].content").description("content"),
+                        fieldWithPath("[].timestamp").description("timestamp"),
                     )
                 )
             )
@@ -276,6 +278,7 @@ class MessageIntegrationTest {
                         fieldWithPath("receiverId").description("receiverId").optional(),
                         fieldWithPath("groupId").description("groupId").optional(),
                         fieldWithPath("content").description("content"),
+                        fieldWithPath("timestamp").description("timestamp"),
                     )
                 )
             )

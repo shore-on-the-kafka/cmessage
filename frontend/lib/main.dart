@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'auth_service.dart';
 import 'home_screen.dart';
-import 'login_screen.dart';
+import 'login_screen.dart'; // home_screen.dart를 임포트합니다.
 
 void main() {
   // 웹뷰 초기화 (필요한 경우)
